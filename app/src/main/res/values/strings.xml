@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">UltrasonicBLE</string>
+    <string name="connected">Connected</string>
+    <string name="disconnected">Disconnected</string>
+    <string name="connect">Connect</string>
+    <string name="show_history">Show history</string>
+    <string name="clear_data">Clear data</string>
+    <string name="disconnect">Disconnect</string>
+</resources>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.example.gleb.ultrasonicble.MainActivity"
+    android:orientation="vertical">
+
+
+
+    <TextView
+        android:id="@+id/tv_height"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="72sp"
+        android:layout_gravity="center_horizontal"
+        tools:text="100cm"
+        android:layout_margin="20dp"
+       />
+
+    <TextView
+        android:id="@+id/tv_connectionStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        tools:text="Connected"
+        android:layout_gravity="center_horizontal"
+        />
+
+    <com.robinhood.spark.SparkView
+        android:id="@+id/sv_height_graph"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        />
+
+
+</LinearLayout>
