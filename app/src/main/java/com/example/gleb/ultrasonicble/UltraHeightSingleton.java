@@ -45,6 +45,7 @@ public class UltraHeightSingleton {
         ContentValues values = new ContentValues();
         values.put(Cols.UUID, ultraHeight.getUuid().toString());
         values.put(Cols.HEIGHT, ultraHeight.getHeight());
+        values.put(Cols.SPEED, ultraHeight.getSpeed());
         values.put(Cols.DATE, ultraHeight.getDate().getTime());
         return values;
     }
@@ -61,7 +62,7 @@ public class UltraHeightSingleton {
         try (HeightCursorWrapper cursor = queryUltraHeights(null, null)) {
             cursor.moveToFirst();
             while (!cursor.isAfterLast()) {
-                data.add(cursor.getHeight());
+                data.add(cursor.getUltraHeight());
                 cursor.moveToNext();
             }
             return data;
@@ -78,7 +79,7 @@ public class UltraHeightSingleton {
             cursor.moveToFirst();
             Log.i(TAG,"cursor size= " +cursor.getCount());
             while (!cursor.isAfterLast()) {
-                ultraHeights.add(cursor.getHeight());
+                ultraHeights.add(cursor.getUltraHeight());
                 cursor.moveToNext();
             }
             return ultraHeights;
@@ -92,7 +93,7 @@ public class UltraHeightSingleton {
                 return null;
             }
             cursor.moveToFirst();
-            return cursor.getHeight();
+            return cursor.getUltraHeight();
         }
     }
 
@@ -120,8 +121,8 @@ public class UltraHeightSingleton {
 
 
 
-    public void addItem(float height) {
-        UltraHeight ultraHeight = new UltraHeight(height, Calendar.getInstance().getTime());
+    public void addItem(float height, float speed) {
+        UltraHeight ultraHeight = new UltraHeight(height, speed, Calendar.getInstance().getTime());
         ContentValues values = getContentValues(ultraHeight);
         mDatabase.insert(HeightsTable.NAME, null, values);
     }

@@ -25,6 +25,7 @@ public class HeightDBaseHelper extends SQLiteOpenHelper {
                 "(" + "_id integer primary key autoincrement, " +
                 Cols.UUID + ", " +
                 Cols.HEIGHT + ", " +
+                Cols.SPEED + ", " +
                 Cols.DATE + ")"
         );
 

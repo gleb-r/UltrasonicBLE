@@ -17,8 +17,18 @@
         android:textSize="72sp"
         android:layout_gravity="center_horizontal"
         tools:text="100cm"
-        android:layout_margin="20dp"
+        android:layout_margin="10dp"
        />
+
+    <TextView
+        android:id="@+id/tv_speed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="36sp"
+        android:layout_gravity="center_horizontal"
+        tools:text="20 km/h"
+        android:layout_margin="10dp"
+        />
 
     <TextView
         android:id="@+id/tv_connectionStatus"
@@ -29,11 +39,34 @@
         android:layout_gravity="center_horizontal"
         />
 
+
+
+
+        <Button
+            android:id="@+id/btn_zero_level"
+            android:text="Measure zero level"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            />
+
+        <TextView
+            android:id="@+id/tv_zero_lvl"
+            android:text="0 mm"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            />
+
+
+
+
     <com.robinhood.spark.SparkView
         android:id="@+id/sv_height_graph"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         />
+
+
+
 
 
 </LinearLayout>

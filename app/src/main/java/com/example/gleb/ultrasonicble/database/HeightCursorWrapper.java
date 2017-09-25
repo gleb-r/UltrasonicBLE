@@ -20,13 +20,15 @@ public class HeightCursorWrapper extends CursorWrapper {
     }
 
 
-    public UltraHeight getHeight () {
+    public UltraHeight getUltraHeight() {
         String uuidString = getString(getColumnIndex(Cols.UUID));
         float height = getFloat(getColumnIndex(Cols.HEIGHT));
+        float speed = getFloat(getColumnIndex(Cols.SPEED));
         long date = getLong(getColumnIndex(Cols.DATE));
         UltraHeight ultraHeight = new UltraHeight(
                 UUID.fromString(uuidString),
                 height,
+                speed,
                 new Date(date)
         );
         return ultraHeight;

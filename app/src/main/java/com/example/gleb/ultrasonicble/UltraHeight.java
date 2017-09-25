@@ -15,21 +15,27 @@ public class UltraHeight {
 
     //высота в мм
     private float height;
+
+
+
+    // скорость в момент измерения
+    private float speed;
     // дата и время измерения
     private Date date;
 
-    public UltraHeight (UUID uuid, float height, Date date) {
+    public UltraHeight (UUID uuid, float height, float speed, Date date) {
         this.uuid = uuid;
         this.height = height;
+        this.speed = speed;
         this.date = date;
     }
 
-    public UltraHeight( float height, Date date) {
-        this(UUID.randomUUID(),height,date);
+    public UltraHeight( float height, float speed, Date date) {
+        this(UUID.randomUUID(),height,speed,date);
     }
 
-    public UltraHeight (float height) {
-        this(height, Calendar.getInstance().getTime());
+    public UltraHeight (float height, float speed) {
+        this(height, speed, Calendar.getInstance().getTime());
     }
 
     public UUID getUuid() {
@@ -46,6 +52,14 @@ public class UltraHeight {
 
     public void setHeight(float height) {
         this.height = height;
+    }
+
+    public float getSpeed() {
+        return speed;
+    }
+
+    public void setSpeed(float speed) {
+        this.speed = speed;
     }
 
     public Date getDate() {

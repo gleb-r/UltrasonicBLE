@@ -13,6 +13,7 @@ public class DbSchema {
         public static final class Cols {
             public static final String UUID = "uuid";
             public static final String HEIGHT = "height";
+            public static final String SPEED = "speed";
             public static final String DATE = "date";
         }
     }

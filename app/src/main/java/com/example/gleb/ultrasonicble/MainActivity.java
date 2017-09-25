@@ -10,18 +10,23 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.RectF;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
 import android.widget.TextView;
 
 import com.robinhood.spark.SparkAdapter;
 import com.robinhood.spark.SparkView;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
@@ -46,9 +51,16 @@ public class MainActivity extends AppCompatActivity {
     private UltraHeightSingleton mData;
 
     private MySparkAdapter mSparkAdapter;
+    private TextView tvZeroLevel;
+    private int mZeroLevel;
+    private OdometerService odometer;
+    private boolean isLocationServiceBound = false;
+    private float lastSpeed =0;
+    private TextView tvSpeed;
 
 
-    private ServiceConnection mServiceConnection = new ServiceConnection() {
+
+    private ServiceConnection mBleServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             mBluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
@@ -66,6 +78,22 @@ public class MainActivity extends AppCompatActivity {
             mServiceConnected = false;
             mBluetoothLeService.disconnect();
             mBluetoothLeService = null;
+
+        }
+    };
+
+    private ServiceConnection mLocationServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder binder) {
+            OdometerService.OdometerBinder odometerBinder = (OdometerService.OdometerBinder) binder;
+            odometer = odometerBinder.getOdometer();
+            isLocationServiceBound = true;
+
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            isLocationServiceBound = false;
 
         }
     };
@@ -104,7 +132,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.i(TAG, "action data available");
                 String data = intent.getStringExtra(BluetoothLeService.EXTRA_DATA);
                 if (data != null) {
-                    float height;
+                    float height=0;
                     try {
                         height = Float.valueOf(data);
                         if (lastData.size()>NUM_GRAPH_POINTS) {
@@ -115,13 +143,13 @@ public class MainActivity extends AppCompatActivity {
                             Log.i(TAG, "lastData size <=  100 ("+lastData.size()+ ")");
                         }
                         Log.i(TAG, "Before add lastData size= "+lastData.size());
-                        lastData.add(new UltraHeight(height));
-                        mData.addItem(height);
+                        lastData.add(new UltraHeight(height,lastSpeed));
+                        mData.addItem(height,lastSpeed);
                     } catch (NumberFormatException e) {
                         Log.e(TAG, "Wrong float to int format " +e);
                     }
 
-                    mTextViewHeight.setText(data);
+                    mTextViewHeight.setText(String.valueOf((int)height-mZeroLevel));
                     mSparkAdapter.notifyDataSetChanged();
                 }
             }
@@ -145,15 +173,22 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void updateConnectionState(final boolean isConnected) {
+
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 if (isConnected) {
                     mTextViewConnectionStatus.setText(R.string.connected);
                     invalidateOptionsMenu();
+                    watchSpeed();
                 } else {
                     mTextViewConnectionStatus.setText(R.string.disconnected);
                     invalidateOptionsMenu();
+                    if (isLocationServiceBound) {
+                        unbindService(mLocationServiceConnection);
+                        isLocationServiceBound = false;
+                        tvSpeed.setText("---");
+                    }
                 }
             }
         });
@@ -166,13 +201,17 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         Intent bleServiceIntent = new Intent(this, BluetoothLeService.class);
-        bindService(bleServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
+        bindService(bleServiceIntent, mBleServiceConnection, BIND_AUTO_CREATE);
+        Intent locationServiceIntent = new Intent(this,OdometerService.class);
+        bindService(locationServiceIntent,mLocationServiceConnection,BIND_AUTO_CREATE);
 
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+
         setContentView(R.layout.activity_main);
         mTextViewConnectionStatus = (TextView) findViewById(R.id.tv_connectionStatus);
         mTextViewHeight = (TextView) findViewById(R.id.tv_height);
@@ -182,6 +221,20 @@ public class MainActivity extends AppCompatActivity {
         SparkView sparkView = (SparkView)findViewById(R.id.sv_height_graph);
         mSparkAdapter = new MySparkAdapter(lastData);
         sparkView.setAdapter(mSparkAdapter);
+        tvZeroLevel = (TextView)findViewById(R.id.tv_zero_lvl);
+        Button btnZeroLevel = (Button)findViewById(R.id.btn_zero_level);
+        btnZeroLevel.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mZeroLevel =0;
+                for (int i = lastData.size()-10; i < lastData.size() ; i++) {
+                    mZeroLevel+=lastData.get(i).getHeight();
+                }
+                mZeroLevel/=10;
+                tvZeroLevel.setText(mZeroLevel + " mm");
+            }
+        });
+
 
 
 
@@ -214,7 +267,7 @@ public class MainActivity extends AppCompatActivity {
                     mBluetoothLeService.disconnect();
                     mBluetoothLeService = null;
                     unregisterReceiver(mBroadcastReceiver);
-                    unbindService(mServiceConnection);
+                    unbindService(mBleServiceConnection);
 
                     Log.i(TAG, "disconnected");
                     mConnected = false;
@@ -222,7 +275,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 else {
                     Intent bleServiceIntent = new Intent(this, BluetoothLeService.class);
-                    bindService(bleServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
+                    bindService(bleServiceIntent, mBleServiceConnection, BIND_AUTO_CREATE);
 
                 }
 
@@ -237,8 +290,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-
-
         registerReceiver(mBroadcastReceiver, makerIntentFilter());
         if (mBluetoothLeService != null) {
             final boolean result = mBluetoothLeService.connect(DEVICE_ADDRESS);
@@ -249,10 +300,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStop() {
+        super.onStop();
+        if (isLocationServiceBound) {
+            unbindService(mLocationServiceConnection);
+            isLocationServiceBound = false;
+        }
+
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         unregisterReceiver(mBroadcastReceiver);
-        unbindService(mServiceConnection);
+        unbindService(mBleServiceConnection);
         mBluetoothLeService = null;
     }
 
@@ -265,6 +326,25 @@ public class MainActivity extends AppCompatActivity {
         intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
         return intentFilter;
     }
+
+    private void watchSpeed() {
+        tvSpeed = (TextView)findViewById(R.id.tv_speed);
+        final Handler handler = new Handler();
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+
+                if (odometer != null) {
+                    lastSpeed = odometer.getSpeed();
+                    String speedStr = String.format(Locale.US,"%.0f km/h", (lastSpeed*3.6));
+                    tvSpeed.setText(speedStr);
+                }
+                handler.postDelayed(this,1000);
+            }
+        });
+    }
+
+
 
     private class MySparkAdapter extends SparkAdapter {
 
@@ -294,7 +374,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public float getBaseLine() {
-            return 0;
+            return mZeroLevel;
         }
 
         @Override
@@ -311,6 +391,8 @@ public class MainActivity extends AppCompatActivity {
         public float getY(int index) {
             return data.get(index).getHeight();
         }
+
+
     }
 
 }
