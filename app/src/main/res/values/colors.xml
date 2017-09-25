@@ -6,4 +6,6 @@
     <color name="line_color">#303F9F</color>
     <color name="base_line_color">#3F51B5</color>
     <color name="scrub_line_color">#3F51B5</color>
+    <color name="grey_row">	#858585</color>
+    <color name="white_row">#FFFFFF</color>
 </resources>

@@ -55,9 +55,8 @@ public class MainActivity extends AppCompatActivity {
     private int mZeroLevel;
     private OdometerService odometer;
     private boolean isLocationServiceBound = false;
-    private float lastSpeed =0;
+    private float lastSpeed = 0;
     private TextView tvSpeed;
-
 
 
     private ServiceConnection mBleServiceConnection = new ServiceConnection() {
@@ -111,8 +110,6 @@ public class MainActivity extends AppCompatActivity {
                 updateConnectionState(mConnected);
 
 
-
-
             } else if (action.equals(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED)) {
                 mGattServices = mBluetoothLeService.getSupportedGattServices();
                 Log.i(TAG, String.valueOf(mGattServices.size()) + "services");
@@ -122,7 +119,7 @@ public class MainActivity extends AppCompatActivity {
                     for (BluetoothGattCharacteristic characteristic : mGattCharacteristics) {
                         if (characteristic.getUuid().equals(heightCharacteristicUUID)) {
                             Log.i(TAG, "HeightCharacteristic Found!");
-                            mBluetoothLeService.setCharacteristicNotification(characteristic,true);
+                            mBluetoothLeService.setCharacteristicNotification(characteristic, true);
                             break;
                         }
                     }
@@ -132,32 +129,30 @@ public class MainActivity extends AppCompatActivity {
                 Log.i(TAG, "action data available");
                 String data = intent.getStringExtra(BluetoothLeService.EXTRA_DATA);
                 if (data != null) {
-                    float height=0;
+                    float height = 0;
                     try {
                         height = Float.valueOf(data);
-                        if (lastData.size()>NUM_GRAPH_POINTS) {
-                            Log.i(TAG, "Before remove lastData size= "+lastData.size());
+                        if (lastData.size() > NUM_GRAPH_POINTS) {
+                            Log.i(TAG, "Before remove lastData size= " + lastData.size());
                             lastData.remove(0);
 
                         } else {
-                            Log.i(TAG, "lastData size <=  100 ("+lastData.size()+ ")");
+                            Log.i(TAG, "lastData size <=  100 (" + lastData.size() + ")");
                         }
-                        Log.i(TAG, "Before add lastData size= "+lastData.size());
-                        lastData.add(new UltraHeight(height,lastSpeed));
-                        mData.addItem(height,lastSpeed);
+                        Log.i(TAG, "Before add lastData size= " + lastData.size());
+                        lastData.add(new UltraHeight(height, lastSpeed));
+                        mData.addItem(height, lastSpeed);
                     } catch (NumberFormatException e) {
-                        Log.e(TAG, "Wrong float to int format " +e);
+                        Log.e(TAG, "Wrong float to int format " + e);
                     }
 
-                    mTextViewHeight.setText(String.valueOf((int)height-mZeroLevel));
+                    mTextViewHeight.setText(String.valueOf((int) height - mZeroLevel));
                     mSparkAdapter.notifyDataSetChanged();
                 }
             }
 
         }
     };
-
-
 
 
 //
@@ -196,14 +191,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
     @Override
     protected void onStart() {
         super.onStart();
         Intent bleServiceIntent = new Intent(this, BluetoothLeService.class);
         bindService(bleServiceIntent, mBleServiceConnection, BIND_AUTO_CREATE);
-        Intent locationServiceIntent = new Intent(this,OdometerService.class);
-        bindService(locationServiceIntent,mLocationServiceConnection,BIND_AUTO_CREATE);
+        Intent locationServiceIntent = new Intent(this, OdometerService.class);
+        bindService(locationServiceIntent, mLocationServiceConnection, BIND_AUTO_CREATE);
 
     }
 
@@ -217,27 +211,23 @@ public class MainActivity extends AppCompatActivity {
         mTextViewHeight = (TextView) findViewById(R.id.tv_height);
         mData = UltraHeightSingleton.get(this);
         lastData = mData.getLastData(NUM_GRAPH_POINTS);
-        Log.i(TAG, "Size of lastData = "+ lastData.size());
-        SparkView sparkView = (SparkView)findViewById(R.id.sv_height_graph);
+        Log.i(TAG, "Size of lastData = " + lastData.size());
+        SparkView sparkView = (SparkView) findViewById(R.id.sv_height_graph);
         mSparkAdapter = new MySparkAdapter(lastData);
         sparkView.setAdapter(mSparkAdapter);
-        tvZeroLevel = (TextView)findViewById(R.id.tv_zero_lvl);
-        Button btnZeroLevel = (Button)findViewById(R.id.btn_zero_level);
+        tvZeroLevel = (TextView) findViewById(R.id.tv_zero_lvl);
+        Button btnZeroLevel = (Button) findViewById(R.id.btn_zero_level);
         btnZeroLevel.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                mZeroLevel =0;
-                for (int i = lastData.size()-10; i < lastData.size() ; i++) {
-                    mZeroLevel+=lastData.get(i).getHeight();
+                mZeroLevel = 0;
+                for (int i = lastData.size() - 10; i < lastData.size(); i++) {
+                    mZeroLevel += lastData.get(i).getHeight();
                 }
-                mZeroLevel/=10;
+                mZeroLevel /= 10;
                 tvZeroLevel.setText(mZeroLevel + " mm");
             }
         });
-
-
-
-
 
 
     }
@@ -272,15 +262,15 @@ public class MainActivity extends AppCompatActivity {
                     Log.i(TAG, "disconnected");
                     mConnected = false;
                     updateConnectionState(mConnected);
-                }
-                else {
+                } else {
                     Intent bleServiceIntent = new Intent(this, BluetoothLeService.class);
                     bindService(bleServiceIntent, mBleServiceConnection, BIND_AUTO_CREATE);
 
                 }
-
-
                 return true;
+            case (R.id.show_history):
+                Intent intent = new Intent(this, DataViewActivity.class);
+                startActivity(intent);
 
             default:
                 return super.onOptionsItemSelected(item);
@@ -328,7 +318,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void watchSpeed() {
-        tvSpeed = (TextView)findViewById(R.id.tv_speed);
+        tvSpeed = (TextView) findViewById(R.id.tv_speed);
         final Handler handler = new Handler();
         handler.post(new Runnable() {
             @Override
@@ -336,14 +326,13 @@ public class MainActivity extends AppCompatActivity {
 
                 if (odometer != null) {
                     lastSpeed = odometer.getSpeed();
-                    String speedStr = String.format(Locale.US,"%.0f km/h", (lastSpeed*3.6));
+                    String speedStr = String.format(Locale.US, "%.0f km/h", (lastSpeed * 3.6));
                     tvSpeed.setText(speedStr);
                 }
-                handler.postDelayed(this,1000);
+                handler.postDelayed(this, 1000);
             }
         });
     }
-
 
 
     private class MySparkAdapter extends SparkAdapter {
