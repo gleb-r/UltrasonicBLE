@@ -11,11 +11,14 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.wdullaer.materialdatetimepicker.date.DatePickerDialog;
+
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
-public class DataViewActivity extends AppCompatActivity {
+public class DataViewActivity extends AppCompatActivity implements DatePickerDialog.OnDateSetListener {
 
     private RecyclerView mRecyclerView;
     private LayoutInflater mLayoutInflater;
@@ -31,6 +34,47 @@ public class DataViewActivity extends AppCompatActivity {
         mData = UltraHeightSingleton.get(this).getData();
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         mRecyclerView.setAdapter(new CustomAdapter());
+        int itemsCount = UltraHeightSingleton.get(this).getItemsCount();
+        String subtitle = getString(R.string.subtitle_format, itemsCount);
+        getSupportActionBar().setSubtitle(subtitle);
+        startDatePicker();
+
+
+    }
+
+    private void startDatePicker() {
+        Calendar now = Calendar.getInstance();
+        DatePickerDialog datePickerDialog = DatePickerDialog.newInstance(
+                this,
+                now.get(Calendar.YEAR),
+                now.get(Calendar.MONTH),
+                now.get(Calendar.DATE)
+        );
+        Calendar[] selectable_days = new Calendar[4];
+        for (int i = 0; i < 4; i++) {
+            Calendar day = Calendar.getInstance();
+            day.set(2017,9,26-i*2);
+            selectable_days[i] = day;
+        }
+        datePickerDialog.setSelectableDays(selectable_days);
+        datePickerDialog.show(getFragmentManager(),"DatePickerDialog");
+
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        DatePickerDialog datePickerDialog =
+                (DatePickerDialog)getFragmentManager().findFragmentByTag("DatePickerDialog");
+        if (datePickerDialog!=null) {
+            datePickerDialog.setOnDateSetListener(this);
+        }
+    }
+
+    @Override
+    public void onDateSet(DatePickerDialog view, int year, int monthOfYear, int dayOfMonth) {
+        String date = "You picked the following date: " + dayOfMonth + "/" + monthOfYear + "/" + year;
+        Log.i(TAG,date);
 
     }
 
@@ -45,7 +89,7 @@ public class DataViewActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(CustomViewHolder holder, int position) {
-            if (mData!=null && mData.size()>0) {
+            if (mData != null && mData.size() > 0) {
                 UltraHeight ultraHeight = mData.get(position);
                 if (ultraHeight != null) {
                     if (position % 2 == 0) {
@@ -71,7 +115,7 @@ public class DataViewActivity extends AppCompatActivity {
         }
     }
 
-    private class CustomViewHolder extends RecyclerView.ViewHolder  {
+    private class CustomViewHolder extends RecyclerView.ViewHolder {
         private ConstraintLayout mLayout;
         private TextView tvNumber;
         private TextView tvHeight;
@@ -86,7 +130,6 @@ public class DataViewActivity extends AppCompatActivity {
             this.tvSpeed = (TextView) itemView.findViewById(R.id.tv_item_speed);
             this.tvDateAndTime = (TextView) itemView.findViewById(R.id.tv_item_date_n_time);
         }
-
 
 
     }

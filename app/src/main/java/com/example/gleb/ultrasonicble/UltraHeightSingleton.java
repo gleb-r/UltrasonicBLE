@@ -134,6 +134,21 @@ public class UltraHeightSingleton {
                 (HeightsTable.NAME,values,Cols.UUID + "=?", new String[]{uuidString});
     }
 
+    /**
+     * Возвращает кольчество записей в БД
+     * @return
+     */
+    public int getItemsCount () {
+        String selectionStr = "SELECT count() FROM " + HeightsTable.NAME;
+        try (Cursor cursor = mDatabase.rawQuery(selectionStr, null)) {
+            if (cursor.getCount() == 0) {
+                return 0;
+            } else {
+                cursor.moveToFirst();
+                return cursor.getInt(0);
+            }
+        }
+    }
 
 
 
