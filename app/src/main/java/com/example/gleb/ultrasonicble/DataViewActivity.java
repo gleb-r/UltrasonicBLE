@@ -1,7 +1,6 @@
 package com.example.gleb.ultrasonicble;
 
 import android.os.Bundle;
-import android.support.constraint.ConstraintLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -9,11 +8,13 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.wdullaer.materialdatetimepicker.date.DatePickerDialog;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
@@ -30,17 +31,14 @@ public class DataViewActivity extends AppCompatActivity implements DatePickerDia
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_data_view);
         mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
+        UltraHeight testUltraHeiht = new UltraHeight(100,15);
+
         mLayoutInflater = getLayoutInflater();
-        mData = UltraHeightSingleton.get(this).getData();
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        mRecyclerView.setAdapter(new CustomAdapter());
-        int itemsCount = UltraHeightSingleton.get(this).getItemsCount();
-        String subtitle = getString(R.string.subtitle_format, itemsCount);
-        getSupportActionBar().setSubtitle(subtitle);
+        mRecyclerView.setAdapter(new CustomAdapter(new ArrayList<UltraHeight>()));
         startDatePicker();
-
-
     }
+
 
     private void startDatePicker() {
         Calendar now = Calendar.getInstance();
@@ -50,47 +48,64 @@ public class DataViewActivity extends AppCompatActivity implements DatePickerDia
                 now.get(Calendar.MONTH),
                 now.get(Calendar.DATE)
         );
-        Calendar[] selectable_days = new Calendar[4];
-        for (int i = 0; i < 4; i++) {
-            Calendar day = Calendar.getInstance();
-            day.set(2017,9,26-i*2);
-            selectable_days[i] = day;
+        Calendar[] selectable_days = UltraHeightSingleton.get(this).getActiveDays();
+        if (selectable_days != null) {
+            datePickerDialog.setSelectableDays(selectable_days);
         }
-        datePickerDialog.setSelectableDays(selectable_days);
-        datePickerDialog.show(getFragmentManager(),"DatePickerDialog");
+        datePickerDialog.show(getFragmentManager(), "DatePickerDialog");
 
     }
+
 
     @Override
     protected void onResume() {
         super.onResume();
         DatePickerDialog datePickerDialog =
-                (DatePickerDialog)getFragmentManager().findFragmentByTag("DatePickerDialog");
-        if (datePickerDialog!=null) {
+                (DatePickerDialog) getFragmentManager().findFragmentByTag("DatePickerDialog");
+        if (datePickerDialog != null) {
             datePickerDialog.setOnDateSetListener(this);
         }
     }
 
     @Override
     public void onDateSet(DatePickerDialog view, int year, int monthOfYear, int dayOfMonth) {
-        String date = "You picked the following date: " + dayOfMonth + "/" + monthOfYear + "/" + year;
-        Log.i(TAG,date);
+        // Нумерация месяцев начинаеться с 0
+        mData = UltraHeightSingleton.get(this).getDataOnDate(year, ++monthOfYear, dayOfMonth);
+        mRecyclerView.setAdapter(new CustomAdapter(mData));
+
+        String subtitle = getString(
+                R.string.subtitle_format,
+                year,
+                monthOfYear,
+                dayOfMonth,
+                mData.size());
+        try {
+            getSupportActionBar().setSubtitle(subtitle);
+        } catch (NullPointerException e) {
+            Log.e(TAG, "Can't set subtitle " + e);
+        }
 
     }
 
     private class CustomAdapter extends RecyclerView.Adapter<CustomViewHolder> {
 
+        private List<UltraHeight> data;
+
+        public CustomAdapter (List<UltraHeight> data) {
+            this.data = data;
+        }
+
 
         @Override
         public CustomViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            View view = mLayoutInflater.inflate(R.layout.item_layout, parent, false);
+            View view = mLayoutInflater.inflate(R.layout.item_layout2, parent, false);
             return new CustomViewHolder(view);
         }
 
         @Override
         public void onBindViewHolder(CustomViewHolder holder, int position) {
-            if (mData != null && mData.size() > 0) {
-                UltraHeight ultraHeight = mData.get(position);
+            if (data != null && data.size() > 0) {
+                UltraHeight ultraHeight = data.get(position);
                 if (ultraHeight != null) {
                     if (position % 2 == 0) {
                         holder.mLayout.setBackgroundResource(R.color.grey_row);
@@ -100,8 +115,8 @@ public class DataViewActivity extends AppCompatActivity implements DatePickerDia
                     holder.tvNumber.setText(String.valueOf(position));
                     holder.tvHeight.setText(String.format(Locale.US, "%.0f", ultraHeight.getHeight()));
                     holder.tvSpeed.setText(String.format(Locale.US, "%.1f", ultraHeight.getSpeed()));
-                    String dateAndTimeStr = new SimpleDateFormat("dd/MM/yy HH:mm:ss", Locale.US).format(ultraHeight.getDate());
-                    holder.tvDateAndTime.setText(dateAndTimeStr);
+                    String timeStr = new SimpleDateFormat("HH:mm:ss", Locale.US).format(ultraHeight.getDate());
+                    holder.tvTime.setText(timeStr);
                 } else {
                     Log.i(TAG, "ultraHeight is null");
                 }
@@ -111,24 +126,24 @@ public class DataViewActivity extends AppCompatActivity implements DatePickerDia
 
         @Override
         public int getItemCount() {
-            return mData.size();
+            return data.size();
         }
     }
 
     private class CustomViewHolder extends RecyclerView.ViewHolder {
-        private ConstraintLayout mLayout;
+        private RelativeLayout mLayout;
         private TextView tvNumber;
         private TextView tvHeight;
         private TextView tvSpeed;
-        private TextView tvDateAndTime;
+        private TextView tvTime;
 
         public CustomViewHolder(View itemView) {
             super(itemView);
-            this.mLayout = (ConstraintLayout) itemView.findViewById(R.id.layout_row);
+            this.mLayout = (RelativeLayout) itemView.findViewById(R.id.layout_row);
             this.tvNumber = (TextView) itemView.findViewById(R.id.tv_item_number);
             this.tvHeight = (TextView) itemView.findViewById(R.id.tv_item_height);
             this.tvSpeed = (TextView) itemView.findViewById(R.id.tv_item_speed);
-            this.tvDateAndTime = (TextView) itemView.findViewById(R.id.tv_item_date_n_time);
+            this.tvTime = (TextView) itemView.findViewById(R.id.tv_item_date_n_time);
         }
 
 

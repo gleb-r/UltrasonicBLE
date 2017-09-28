@@ -11,9 +11,14 @@ import com.example.gleb.ultrasonicble.database.DbSchema.HeightsTable.Cols;
 import com.example.gleb.ultrasonicble.database.HeightCursorWrapper;
 import com.example.gleb.ultrasonicble.database.HeightDBaseHelper;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -32,14 +37,12 @@ public class UltraHeightSingleton {
     private SQLiteDatabase mDatabase;
 
 
-
     public static UltraHeightSingleton get(Context context) {
         if (instance == null) {
             instance = new UltraHeightSingleton(context);
         }
         return instance;
     }
-
 
     protected static ContentValues getContentValues(UltraHeight ultraHeight) {
         ContentValues values = new ContentValues();
@@ -58,8 +61,23 @@ public class UltraHeightSingleton {
 
 
     public List<UltraHeight> getData() {
+        return getDataFromDB(null, null);
+    }
+
+    public List<UltraHeight> getDataOnDate(int year, int month, int day) {
+
+        String whereClause = "date((" +
+                Cols.DATE +
+                "/ 1000), 'unixepoch') =?";
+        String[] whereArgs = new String[]{
+                String.format(Locale.US, "%d-%02d-%02d", year, month, day)
+        };
+        return getDataFromDB(whereClause, whereArgs);
+    }
+
+    public List<UltraHeight> getDataFromDB(String whereClause, String[] whereArgs) {
         List<UltraHeight> data = new ArrayList<>();
-        try (HeightCursorWrapper cursor = queryUltraHeights(null, null)) {
+        try (HeightCursorWrapper cursor = queryUltraHeights(whereClause, whereArgs)) {
             cursor.moveToFirst();
             while (!cursor.isAfterLast()) {
                 data.add(cursor.getUltraHeight());
@@ -69,21 +87,14 @@ public class UltraHeightSingleton {
         }
     }
 
-    public List<UltraHeight> getLastData (int numOfLastItems) {
-        List<UltraHeight> ultraHeights = new ArrayList<>();
+    public List<UltraHeight> getLastData(int numOfLastItems) {
 
         String whereClause = "_id > ((select max(_id) from " + HeightsTable.NAME + ")-?)";
-        String[] whereArgs =  new String[]{String.valueOf(numOfLastItems)};
+        String[] whereArgs = new String[]{
+                String.valueOf(numOfLastItems)
+        };
+        return getDataFromDB(whereClause, whereArgs);
 
-        try (HeightCursorWrapper cursor = queryUltraHeights(whereClause,whereArgs)) {
-            cursor.moveToFirst();
-            Log.i(TAG,"cursor size= " +cursor.getCount());
-            while (!cursor.isAfterLast()) {
-                ultraHeights.add(cursor.getUltraHeight());
-                cursor.moveToNext();
-            }
-            return ultraHeights;
-        }
     }
 
     public UltraHeight getHeight(UUID id) {
@@ -98,7 +109,6 @@ public class UltraHeightSingleton {
     }
 
 
-
     private HeightCursorWrapper queryUltraHeights(String whereClause, String[] whereArgs) {
 
         Cursor cursor = mDatabase.query(
@@ -110,15 +120,8 @@ public class UltraHeightSingleton {
                 null,
                 null
         );
-//        if (whereArgs!=null && whereArgs.length!=0) {
-//            Log.i(TAG, "whereClause = " + whereClause + " whereArgs=" + whereArgs[0] );
-//        }
-
         return new HeightCursorWrapper(cursor);
     }
-
-
-
 
 
     public void addItem(float height, float speed) {
@@ -131,14 +134,15 @@ public class UltraHeightSingleton {
         String uuidString = ultraHeight.getUuid().toString();
         ContentValues values = getContentValues(ultraHeight);
         mDatabase.update
-                (HeightsTable.NAME,values,Cols.UUID + "=?", new String[]{uuidString});
+                (HeightsTable.NAME, values, Cols.UUID + "=?", new String[]{uuidString});
     }
 
     /**
      * Возвращает кольчество записей в БД
+     *
      * @return
      */
-    public int getItemsCount () {
+    public int getItemsCount() {
         String selectionStr = "SELECT count() FROM " + HeightsTable.NAME;
         try (Cursor cursor = mDatabase.rawQuery(selectionStr, null)) {
             if (cursor.getCount() == 0) {
@@ -150,7 +154,39 @@ public class UltraHeightSingleton {
         }
     }
 
+    public Calendar[] getActiveDays() {
+        Calendar[] active_days;
+        String queryString = "SELECT distinct date((" +
+                Cols.DATE +
+                "/ 1000), 'unixepoch') FROM " +
+                HeightsTable.NAME;
+        try (Cursor cursor = mDatabase.rawQuery(queryString, null)) {
+            if (cursor.getCount() == 0) {
+                return null;
+            } else {
+                active_days = new Calendar[cursor.getCount()];
+                cursor.moveToFirst();
+                for (int i = 0; i < cursor.getCount(); i++) {
 
-
-
+                    // TODO Вероятое появление ошибки при выдачи даты в другом формате
+                    DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+                    String dateStr = cursor.getString(0);
+                    Date date = null;
+                    try {
+                        date = dateFormat.parse(dateStr);
+                    } catch (ParseException e) {
+                        Log.e(TAG, "Can't parse date from DB " + e);
+                        return null;
+                    }
+                    if (date != null) {
+                        Calendar day = Calendar.getInstance();
+                        day.setTime(date);
+                        active_days[i] = day;
+                    }
+                    cursor.moveToNext();
+                }
+                return active_days;
+            }
+        }
+    }
 }
