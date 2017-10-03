@@ -280,6 +280,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+
         registerReceiver(mBroadcastReceiver, makerIntentFilter());
         if (mBluetoothLeService != null) {
             final boolean result = mBluetoothLeService.connect(DEVICE_ADDRESS);

@@ -190,7 +190,7 @@ public class BluetoothLeService extends Service {
     public boolean initialize() {
         // For API level 18 and above, get a reference to BluetoothAdapter through
         // BluetoothManager.
-        Log.i(TAG,"start initialzing");
+
         if (mBluetoothManager == null) {
             mBluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
             if (mBluetoothManager == null) {
@@ -200,6 +200,7 @@ public class BluetoothLeService extends Service {
         }
 
         mBluetoothAdapter = mBluetoothManager.getAdapter();
+
         if (mBluetoothAdapter == null) {
             Log.e(TAG, "Unable to obtain a BluetoothAdapter.");
             return false;
