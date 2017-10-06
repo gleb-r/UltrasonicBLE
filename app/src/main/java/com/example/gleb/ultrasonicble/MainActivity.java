@@ -35,7 +35,8 @@ public class MainActivity extends AppCompatActivity {
     public static final String DEVICE_ADDRESS = "98:4F:EE:10:6C:4A";
     public static final int NUM_GRAPH_POINTS = 200;
 
-    private static final UUID heightCharacteristicUUID = UUID.fromString("00002ab3-0000-1000-8000-00805f9b34fb");
+    public static final UUID heightCharacteristicUUID = UUID.fromString("00002ab3-0000-1000-8000-00805f9b34fb");
+    public static final UUID batteryCharacteristicUUID = UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb");
 
     private TextView mTextViewConnectionStatus;
     private TextView mTextViewHeight;
@@ -49,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
     private List<BluetoothGattCharacteristic> mGattCharacteristics;
     private List<UltraHeight> lastData;
     private UltraHeightSingleton mData;
+    private BluetoothGattCharacteristic batteryCharacteristic;
 
     private MySparkAdapter mSparkAdapter;
     private TextView tvZeroLevel;
@@ -101,74 +103,85 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            if (action.equals(BluetoothLeService.ACTION_GATT_CONNECTED)) {
-                mConnected = true;
-                updateConnectionState(mConnected);
-
-            } else if (action.equals(BluetoothLeService.ACTION_GATT_DISCONNECTED)) {
-                mConnected = false;
-                updateConnectionState(mConnected);
-
-
-            } else if (action.equals(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED)) {
-                mGattServices = mBluetoothLeService.getSupportedGattServices();
-                Log.i(TAG, String.valueOf(mGattServices.size()) + "services");
-                for (BluetoothGattService service : mGattServices) {
-                    Log.i(TAG, "Service " + service.getUuid().toString());
-                    mGattCharacteristics = service.getCharacteristics();
-                    for (BluetoothGattCharacteristic characteristic : mGattCharacteristics) {
-                        if (characteristic.getUuid().equals(heightCharacteristicUUID)) {
-                            Log.i(TAG, "HeightCharacteristic Found!");
-                            mBluetoothLeService.setCharacteristicNotification(characteristic, true);
-                            break;
-                        }
-                    }
-                }
-
-            } else if (action.equals(BluetoothLeService.ACTION_DATA_AVAILABLE)) {
-                Log.i(TAG, "action data available");
-                String data = intent.getStringExtra(BluetoothLeService.EXTRA_DATA);
-                if (data != null) {
-                    float height = 0;
-                    try {
-                        height = Float.valueOf(data);
-                        if (lastData.size() > NUM_GRAPH_POINTS) {
-                            Log.i(TAG, "Before remove lastData size= " + lastData.size());
-                            lastData.remove(0);
-
-                        } else {
-                            Log.i(TAG, "lastData size <=  100 (" + lastData.size() + ")");
-                        }
-                        Log.i(TAG, "Before add lastData size= " + lastData.size());
-                        lastData.add(new UltraHeight(height, lastSpeed));
-                        mData.addItem(height, lastSpeed);
-                    } catch (NumberFormatException e) {
-                        Log.e(TAG, "Wrong float to int format " + e);
-                    }
-
-                    mTextViewHeight.setText(String.valueOf((int) height - mZeroLevel));
-                    mSparkAdapter.notifyDataSetChanged();
-                }
+            if (action == null) {
+                Log.w(TAG, "Null action");
+                return;
             }
-
+            switch (action) {
+                case BluetoothLeService.ACTION_GATT_CONNECTED:
+                    mConnected = true;
+                    updateConnectionState(mConnected);
+                    break;
+                case BluetoothLeService.ACTION_GATT_DISCONNECTED:
+                    mConnected = false;
+                    updateConnectionState(mConnected);
+                    break;
+                case BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED:
+                    setBleNotificationsOn();
+                    break;
+                case BluetoothLeService.ACTION_HEIGHT_DATA_AVAILABLE:
+                    updateHeightValue(intent);
+                    break;
+                case BluetoothLeService.ACTION_BATTERY_DATA_AVAILABLE:
+                    updateBatteryValue(intent);
+                    break;
+                default:
+                    Log.w(TAG, "found unknown action: " + action);
+                    break;
+            }
         }
     };
 
 
-//
-//    private void updateConnectionState(final int resourceId) {
-//        runOnUiThread(new Runnable() {
-//            @Override
-//            public void run() {
-//                mTextViewConnectionStatus.setText(resourceId);
-//            }
-//        });
-//
-//    }
+    private void setBleNotificationsOn() {
+        mGattServices = mBluetoothLeService.getSupportedGattServices();
+        Log.i(TAG, String.valueOf(mGattServices.size()) + "services");
+        for (BluetoothGattService service : mGattServices) {
+            Log.i(TAG, "Service " + service.getUuid().toString());
+            mGattCharacteristics = service.getCharacteristics();
+            for (BluetoothGattCharacteristic characteristic : mGattCharacteristics) {
+                Log.i(TAG, "Got a characteristic: " + characteristic.getUuid().toString());
+                if (characteristic.getUuid().equals(heightCharacteristicUUID)) {
+                    Log.i(TAG, "HeightCharacteristic Found!");
+                    mBluetoothLeService.setCharacteristicNotification(characteristic, true);
+                    break;
+                } else if (characteristic.getUuid().equals(batteryCharacteristicUUID)) {
+                    Log.w(TAG, "BatteryCharacteristic Found!");
+                    batteryCharacteristic = characteristic;
+                    // БУБЕН! Если включать уведомление без задержки, то не срабатывает
+                    Handler handler = new Handler();
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            mBluetoothLeService.setCharacteristicNotification(batteryCharacteristic,true);
+                        }
+                    },1000);
+
+                }
+            }
+        }
+    }
+
+    private void updateHeightValue(Intent intent) {
+        float height = intent.getIntExtra(BluetoothLeService.EXTRA_DATA, 0);
+        if (lastData.size() > NUM_GRAPH_POINTS) {
+            lastData.remove(0);
+        }
+        lastData.add(new UltraHeight(height, lastSpeed));
+        mData.addItem(height, lastSpeed);
+        mTextViewHeight.setText(String.valueOf((int) height - mZeroLevel));
+        mSparkAdapter.notifyDataSetChanged();
+    }
+
+    private void updateBatteryValue(Intent intent) {
+        int batteryLevel = intent.getIntExtra(BluetoothLeService.EXTRA_DATA, 0);
+        TextView tvBatteryLevel = findViewById(R.id.tv_battery_level);
+        tvBatteryLevel.setText(String.valueOf(batteryLevel) + "%");
+        //Log.i(TAG, "Got a new battery level = " + batteryLevel);
+    }
 
 
     private void updateConnectionState(final boolean isConnected) {
-
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -187,7 +200,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-
     }
 
 
@@ -204,22 +216,21 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-
         setContentView(R.layout.activity_main);
-        mTextViewConnectionStatus = (TextView) findViewById(R.id.tv_connectionStatus);
-        mTextViewHeight = (TextView) findViewById(R.id.tv_height);
+        mTextViewConnectionStatus = findViewById(R.id.tv_connectionStatus);
+        mTextViewHeight = findViewById(R.id.tv_height);
         mData = UltraHeightSingleton.get(this);
         lastData = mData.getLastData(NUM_GRAPH_POINTS);
         Log.i(TAG, "Size of lastData = " + lastData.size());
-        SparkView sparkView = (SparkView) findViewById(R.id.sv_height_graph);
+        SparkView sparkView = findViewById(R.id.sv_height_graph);
         mSparkAdapter = new MySparkAdapter(lastData);
         sparkView.setAdapter(mSparkAdapter);
-        tvZeroLevel = (TextView) findViewById(R.id.tv_zero_lvl);
-        Button btnZeroLevel = (Button) findViewById(R.id.btn_zero_level);
+        tvZeroLevel = findViewById(R.id.tv_zero_lvl);
+        Button btnZeroLevel = findViewById(R.id.btn_zero_level);
         btnZeroLevel.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
+                mBluetoothLeService.setCharacteristicNotification(batteryCharacteristic, true);
                 mZeroLevel = 0;
                 for (int i = lastData.size() - 10; i < lastData.size(); i++) {
                     mZeroLevel += lastData.get(i).getHeight();
@@ -228,8 +239,6 @@ public class MainActivity extends AppCompatActivity {
                 tvZeroLevel.setText(mZeroLevel + " mm");
             }
         });
-
-
     }
 
 
@@ -265,13 +274,11 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     Intent bleServiceIntent = new Intent(this, BluetoothLeService.class);
                     bindService(bleServiceIntent, mBleServiceConnection, BIND_AUTO_CREATE);
-
                 }
                 return true;
             case (R.id.show_history):
                 Intent intent = new Intent(this, DataViewActivity.class);
                 startActivity(intent);
-
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -280,7 +287,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-
         registerReceiver(mBroadcastReceiver, makerIntentFilter());
         if (mBluetoothLeService != null) {
             final boolean result = mBluetoothLeService.connect(DEVICE_ADDRESS);
@@ -314,12 +320,13 @@ public class MainActivity extends AppCompatActivity {
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
-        intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
+        intentFilter.addAction(BluetoothLeService.ACTION_HEIGHT_DATA_AVAILABLE);
+        intentFilter.addAction(BluetoothLeService.ACTION_BATTERY_DATA_AVAILABLE);
         return intentFilter;
     }
 
     private void watchSpeed() {
-        tvSpeed = (TextView) findViewById(R.id.tv_speed);
+        tvSpeed = findViewById(R.id.tv_speed);
         final Handler handler = new Handler();
         handler.post(new Runnable() {
             @Override
@@ -339,17 +346,9 @@ public class MainActivity extends AppCompatActivity {
     private class MySparkAdapter extends SparkAdapter {
 
         List<UltraHeight> data;
-//        int boundsHeight = 15050;
-//        int boundsWidth = 200;
 
         @Override
         public RectF getDataBounds() {
-//            int left = getCount()> boundsWidth ?getCount()- boundsWidth :0;
-//            int right = getCount()> boundsWidth ?getCount(): boundsWidth;
-//
-//            RectF bounds = super.getDataBounds();
-//            bounds.left = left;
-//            bounds.right = right;
             return super.getDataBounds();
         }
 

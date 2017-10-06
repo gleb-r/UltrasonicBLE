@@ -1,72 +1,95 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<android.support.constraint.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.example.gleb.ultrasonicble.MainActivity"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    tools:context="com.example.gleb.ultrasonicble.MainActivity">
 
+    <TextView
+        android:id="@+id/tv_battery_level"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        tools:text="95%"/>
+
+    <!--<ImageView-->
+    <!--android:id="@+id/iv_battery"-->
+    <!--android:layout_width="wrap_content"-->
+    <!--android:layout_height="wrap_content"-->
+    <!--android:src="@drawable/ic_battery_full"-->
+    <!--android:rotation="270"/>-->
 
 
     <TextView
         android:id="@+id/tv_height"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="72sp"
-        android:layout_gravity="center_horizontal"
-        tools:text="100cm"
         android:layout_margin="10dp"
-       />
+        android:textSize="72sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHorizontal_bias="0.503"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.087"
+        tools:text="100cm"/>
 
     <TextView
         android:id="@+id/tv_speed"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="36sp"
-        android:layout_gravity="center_horizontal"
-        tools:text="20 km/h"
+       app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/tv_height"
         android:layout_margin="10dp"
+        android:textSize="36sp"
+        tools:text="20 km/h"
         />
 
     <TextView
         android:id="@+id/tv_connectionStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
         android:textSize="16sp"
         tools:text="Connected"
-        android:layout_gravity="center_horizontal"
         />
 
 
+    <Button
+        android:id="@+id/btn_zero_level"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Measure zero level"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@id/tv_zero_lvl"/>
 
-
-        <Button
-            android:id="@+id/btn_zero_level"
-            android:text="Measure zero level"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            />
-
-        <TextView
-            android:id="@+id/tv_zero_lvl"
-            android:text="0 mm"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            />
-
-
+    <TextView
+        android:id="@+id/tv_zero_lvl"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintBaseline_toBaselineOf="@id/btn_zero_level"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:text="0 mm"
+        />
 
 
     <com.robinhood.spark.SparkView
         android:id="@+id/sv_height_graph"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@id/btn_zero_level"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_height"
+        app:layout_constraintVertical_bias="0.494"
         />
 
 
-
-
-
-</LinearLayout>
+</android.support.constraint.ConstraintLayout>
